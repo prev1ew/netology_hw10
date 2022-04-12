@@ -13,9 +13,8 @@ WHERE albums.album_year BETWEEN 6 AND 7;
 
 -- 3
 
-SELECT albums.name, AVG(songs.duration) FROM albums,
-  (SELECT name, id_album, duration FROM songs) AS songs
-WHERE albums.id = songs.id_album
+SELECT albums.name, AVG(songs.duration) FROM albums
+JOIN songs ON songs.id_album = albums.id 
 GROUP BY albums.name;
 
 -- 4
@@ -23,11 +22,10 @@ GROUP BY albums.name;
 select artists."name" from artists
 where artists.id not in 
 (
-	select m_artist_album.id_artist from albums
-	join m_artist_album on m_artist_album.id_album = albums.id 
-	where albums.album_year = 2020
+  select m_artist_album.id_artist from albums
+  join m_artist_album on m_artist_album.id_album = albums.id 
+  where albums.album_year = 2020
 );
-
 
 -- 5 
 
@@ -41,17 +39,12 @@ WHERE artists.name = 'Рамштайн';
 
 -- 6
 
-select albums."name" from albums
-join m_artist_album on m_artist_album .id_album  = albums.id 
-where m_artist_album.id_artist in 
-(
-
-	select artists.id from artists
-	join m_artist_genre on m_artist_genre.id_artist  = artists.id
-	group by artists.id
-	having count(m_artist_genre.id_genre) > 1
-)
-;
+select albums.name from albums
+join m_artist_album on m_artist_album.id_album  = albums.id 
+join artists on artists.id  = m_artist_album.id_artist  
+join m_artist_genre on m_artist_genre.id_artist  = artists.id 
+group by albums.name
+having count(m_artist_genre.id_genre) > 1;
 
 -- 7
 
@@ -62,31 +55,19 @@ having count(m_track_collection.id_collection) = 0;
 
 -- 8 
 
-select artists."name" from artists
+select artists.name from artists
 join m_artist_album on m_artist_album.id_artist = artists.id 
 join songs on songs.id_album = m_artist_album.id_album 
-where songs.duration = (
-	select min(songs.duration) from songs 
-)
-group by artists."name";
+where songs.duration = ( select min(songs.duration) from songs );
 
 -- 9 
 
-select albums."name" from albums 
-where albums.id in (
-	select songs.id_album from songs 
-	group by songs.id_album 
-	having count(songs.id) = (
-		select count(songs.id) from songs 
-		group by songs.id_album 
-		order by count(songs.id) OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY
-	)
-)
-
-
-
-
-
-
-
-
+SELECT albums.name as Album, COUNT(songs.name) as Songs_count FROM Albums 
+JOIN Songs ON Albums.id = Songs.id_album 
+GROUP BY albums.name
+HAVING COUNT(songs.name) = (  
+  SELECT COUNT(songs.name) FROM albums
+  JOIN songs ON albums.id = songs.id_album
+  GROUP BY albums.name
+  ORDER BY COUNT(songs.name)
+  LIMIT 1);
